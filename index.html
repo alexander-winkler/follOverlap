@@ -44,8 +44,14 @@
     -->
 
     <p id="result" class="mt-3"></p>
-    <button class="btn btn-secondary accordion w-100 text-start mb-2" id="accordion" style="display: none;" onclick="toggleAccordion()">Common Followers</button>
-    <div class="panel p-3 border" id="panel" style="display: none;"></div>
+    <!-- Overlap Accordion -->
+    <button class="btn btn-secondary accordion w-100 text-start mb-2" id="accordion-overlap" style="display: none;" onclick="toggleAccordion('panel-overlap')">Common Followers</button>
+    <div class="panel p-3 border" id="panel-overlap" style="display: none;"></div>
+
+    <!-- Breakdown Accordion -->
+    <button class="btn btn-secondary accordion w-100 text-start mb-2" id="accordion-details" style="display: none;" onclick="toggleAccordion('panel-details')">Detailed Breakdown</button>
+    <div class="panel p-3 border" id="panel-details" style="display: none;"></div>
+
   </div>
 
   <script>
@@ -78,50 +84,63 @@
     }
 
     async function calculateOverlap() {
-      const handlesInput = document.getElementById('handles').value.trim();
-      const handles = handlesInput.split('\n').map(h => h.trim()).filter(h => h);
-      //const loadingIndicator = document.getElementById('loading');
-      const resultText = document.getElementById('result');
-      const accordion = document.getElementById('accordion');
-      const panel = document.getElementById('panel');
+  const handlesInput = document.getElementById('handles').value.trim();
+  const handles = handlesInput.split('\n').map(h => h.trim()).filter(h => h);
+  const resultText = document.getElementById('result');
+  const accordionDetails = document.getElementById('accordion-details');
+  const panelDetails = document.getElementById('panel-details');
+  const accordionOverlap = document.getElementById('accordion-overlap');
+  const panelOverlap = document.getElementById('panel-overlap');
 
-      if (handles.length < 2) {
-        resultText.textContent = 'Please enter at least two Mastodon handles.';
-        return;
-      }
+  if (handles.length < 2) {
+    resultText.textContent = 'Please enter at least two Mastodon handles.';
+    return;
+  }
 
-      //loadingIndicator.style.display = 'flex'; // Show spinner
-      resultText.textContent = ''; // Clear previous results
-      accordion.style.display = 'none'; // Hide accordion
-      panel.style.display = 'none'; // Hide panel
-      panel.innerHTML = ''; // Clear accordion content
+  resultText.textContent = ''; // Clear previous results
+  accordionDetails.style.display = 'none'; // Hide detailed breakdown accordion
+  accordionOverlap.style.display = 'none'; // Hide overlap accordion
+  panelDetails.style.display = 'none'; // Hide details panel
+  panelOverlap.style.display = 'none'; // Hide overlap panel
+  panelDetails.innerHTML = ''; // Clear details content
+  panelOverlap.innerHTML = ''; // Clear overlap content
 
-      try {
-        const followersLists = await Promise.all(handles.map(fetchFollowers));
-        const overlap = followersLists.reduce((a, b) => a.filter(f => b.includes(f)));
-        resultText.textContent = `Follower Overlap: ${overlap.length} shared followers.`;
+  try {
+    const followersLists = await Promise.all(handles.map(fetchFollowers));
+    const overlap = followersLists.reduce((a, b) => a.filter(f => b.includes(f)));
+    resultText.innerHTML = `<strong>Follower Overlap:</strong> ${overlap.length} shared followers.<br>`;
 
-        if (overlap.length > 0) {
-          accordion.style.display = 'block'; // Show accordion button
-          overlap.forEach(follower => {
-            const [username, instance] = follower.split('@');
-            const link = document.createElement('a');
-            link.href = `https://${instance}/@${username}`;
-            link.target = '_blank';
-            link.textContent = `@${follower}`;
-            panel.appendChild(link);
-          });
-        }
-      } catch (error) {
-        console.error(error);
-        resultText.textContent = 'Error fetching data. Check the handles or try again.';
-      } /*finally {
-        loadingIndicator.style.display = 'none'; // Hide spinner
-      } */
+    if (overlap.length > 0) {
+      // Populate the breakdown accordion
+      accordionDetails.style.display = 'block'; // Show detailed breakdown accordion
+      handles.forEach((handle, i) => {
+        const accountFollowers = followersLists[i].length;
+        const sharedCount = overlap.filter(f => followersLists[i].includes(f)).length;
+        const percentage = ((sharedCount / accountFollowers) * 100).toFixed(2);
+        const detailItem = document.createElement('p');
+        detailItem.textContent = `${sharedCount} of ${accountFollowers} followers of ${handle} (${percentage}%) follow at least one other entered account.`;
+        panelDetails.appendChild(detailItem);
+      });
+
+      // Populate the overlap accordion
+      accordionOverlap.style.display = 'block'; // Show shared followers accordion
+      overlap.forEach(follower => {
+        const [username, instance] = follower.split('@');
+        const link = document.createElement('a');
+        link.href = `https://${instance}/@${username}`;
+        link.target = '_blank';
+        link.textContent = `@${follower}`;
+        panelOverlap.appendChild(link);
+      });
     }
+  } catch (error) {
+    console.error(error);
+    resultText.textContent = 'Error fetching data. Check the handles or try again.';
+  } 
+  }
 
-    function toggleAccordion() {
-      const panel = document.getElementById('panel');
+    function toggleAccordion(elementId) {
+      const panel = document.getElementById(elementId);
       panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     }
   </script>
