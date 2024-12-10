@@ -107,8 +107,10 @@
 
   try {
     const followersLists = await Promise.all(handles.map(fetchFollowers));
+    const uniqFollowers = [...new Set(followersLists.flat())];
+    console.log(uniqFollowers);
     const overlap = followersLists.reduce((a, b) => a.filter(f => b.includes(f)));
-    resultText.innerHTML = `<strong>Follower Overlap:</strong> ${overlap.length} shared followers.<br>`;
+    resultText.innerHTML = `<strong>Follower Overlap:</strong> ${overlap.length} shared followers.<br><strong>Total number of unique followers:</strong> ${uniqFollowers.length}`;
 
     if (overlap.length > 0) {
       // Populate the breakdown accordion
